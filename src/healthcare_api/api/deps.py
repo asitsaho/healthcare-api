@@ -1,22 +1,52 @@
-"""Shared FastAPI dependencies, as reusable ``Annotated`` aliases.
-
-Declaring these once means handlers read as ``db: DbSession`` instead of
-repeating ``Depends(get_db)`` everywhere, and there is a single place to change
-if the wiring changes.
-"""
-
-from __future__ import annotations
-
+import uuid
+from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Header, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from healthcare_api.core.config import Settings, get_settings
-from healthcare_api.db.session import get_db
+from healthcare_api.core.config import get_settings
+from healthcare_api.db.session import get_db as _get_db
 
+settings = get_settings()
+
+# Re-exported so feature routers only need to import from `api.deps`.
+get_db = _get_db
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
-# Depend on this rather than calling get_settings() inline, so tests can
-# override it with app.dependency_overrides[get_settings].
-SettingsDep = Annotated[Settings, Depends(get_settings)]
+
+def get_actor_id(
+    x_user_id: Annotated[uuid.UUID | None, Header(alias=settings.default_actor_header)] = None,
+) -> uuid.UUID:
+    """Resolve the id of the actor making the request.
+
+    For this development implementation the actor id is supplied directly
+    via the `X-User-Id` header. In production this should be replaced by an
+    authenticated identity resolved from OAuth2/OIDC or the organization's
+    identity provider.
+    """
+    if x_user_id is None:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Missing required '{settings.default_actor_header}' header.",
+        )
+    return x_user_id
+
+
+ActorId = Annotated[uuid.UUID, Depends(get_actor_id)]
+
+
+@dataclass(frozen=True)
+class Pagination:
+    limit: int
+    offset: int
+
+
+def get_pagination(
+    limit: Annotated[int, Query(ge=1, le=settings.max_page_limit)] = settings.default_page_limit,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> Pagination:
+    return Pagination(limit=limit, offset=offset)
+
+
+PaginationParams = Annotated[Pagination, Depends(get_pagination)]

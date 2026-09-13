@@ -7,7 +7,7 @@ requires-python = ">=3.14"
 authors = [{ name = "Asit", email = "asitsahoo2008@gmail.com" }]
 
 dependencies = [
-    "fastapi>=0.141",
+    "fastapi[standard,standards]>=0.141",
     "uvicorn[standard]>=0.52",
     # The [asyncio] extra pulls in greenlet, which SQLAlchemy's async layer requires.
     "sqlalchemy[asyncio]>=2.0.52",

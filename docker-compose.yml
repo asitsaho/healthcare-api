@@ -33,6 +33,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      DATABASE_URL: postgresql+asyncpg://app:app@db:5432/app
       POSTGRES_HOST: db
       POSTGRES_PORT: "5432"
       POSTGRES_USER: app
