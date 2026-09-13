@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import URL, make_url
 
 
 class Settings(BaseSettings):
@@ -14,6 +15,10 @@ class Settings(BaseSettings):
     debug: bool = False
 
     database_url: str = "postgresql+asyncpg://app:app@localhost:5433/app"
+
+    @property
+    def sqlalchemy_url(self) -> URL:
+        return make_url(self.database_url)
 
     # Used only for the development/test actor identification scheme
     # described in the design doc (X-User-Id header). Replace with a real
